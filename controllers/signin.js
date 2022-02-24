@@ -26,8 +26,8 @@ const signin = {
     if (!user || !user.id) {
       return Promise.reject("Incorrect form submission");
     }
-    const token = signToken(user.id);
-    return setToken(token, user.id)
+    const token = signin.signToken(user.id);
+    return signin.setToken(token, user.id)
       .then(
         () => {
           return { success: 'true', userId: token, user: user.id };
@@ -74,10 +74,10 @@ const signin = {
 
   signinAuthentication: (req, res, bcrypt) => {
     const { authorization } = req.headers;
-    return authorization ? getAuthTokenId(req, res)
-      : handleSignin(bcrypt, req, res)
+    return authorization ? signin.getAuthTokenId(req, res)
+      : signin.handleSignin(bcrypt, req, res)
         .then(data =>
-          data && data.id ? createSession(data) : Promise.reject(data))
+          data && data.id ? signin.createSession(data) : Promise.reject(data))
         .then(session => res.status(200).json(session))
         .catch(err => res.status(400).json(err));
   }

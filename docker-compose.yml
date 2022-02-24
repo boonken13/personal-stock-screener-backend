@@ -24,15 +24,15 @@ services:
       - redis_data_container:/data/
 
   # Backend
-  smart-brain-api:
+  personal-stock-screener:
     # env_file:
     #   - ./.private/api-keys.env "Another way to insert env variables" 
     container_name: backend
     build: ./
     volumes:
-      - ./:/usr/src/smart-brain-api
+      - ./:/usr/src/personal-stock-screener
     command: npm start
-    working_dir: /usr/src/smart-brain-api
+    working_dir: /usr/src/personal-stock-screener
     ports:
       - "3001:3001"
     environment:
