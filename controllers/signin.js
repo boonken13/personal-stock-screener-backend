@@ -49,7 +49,7 @@ const signin = {
         if (user) {
           let isValid = bcrypt.compareSync(password, user.password);
           if (isValid) {
-            return { id: user.email };
+            return { email: user.email , id: user._id.str};
           }
         } else {
           return Promise.reject("User not found");

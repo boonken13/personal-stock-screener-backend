@@ -1,5 +1,8 @@
-const handleProfileGet = (req, res, db) => {
+const mongoDb = require("./../db_modules/dbProperties");
+
+const handleProfileGet = (req, res) => {
   const { id } = req.params;
+
   db.select('*').from('users').where({id})
     .then(user => {
       if (user.length) {
@@ -11,7 +14,7 @@ const handleProfileGet = (req, res, db) => {
     .catch(err => res.status(400).json('error getting user'))
 }
 
-const handleProfileUpdate = (req, res, db) => {
+const handleProfileUpdate = (req, res) => {
   const { id } = req.params
   const { name, age, pet } = req.body.formInput
   db('users')
