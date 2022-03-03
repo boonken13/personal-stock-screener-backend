@@ -1,25 +1,23 @@
-const mongoDb = require("./dbSysProperties");
+const mongoDb = require("./dbProperties");
 
-const counterManager = {
-
+const dbUtils = {
     /**
      * Increments the DB counter and returns the latest value for the caller to use.
      *
      * @param {String} counterName
      * @returns {Promise}
      */
-    incrementAndGetCounter: (counterName) => {
-        console.log(__dirname);
-        console.log(mongoDb, "bk");
+     incrementAndGetCounter: (counterName) => {
         return mongoDb.collection_counter.findByIdAndUpdate(
             { _id: counterName },
             { $inc: {seq: 1} },
             { upsert: true, new: true }
         ).then(
-            counterDoc => counterDoc.seq
+            counterDoc => {
+                return counterDoc.seq
+            }
         );
     },
+}
 
-};
-
-module.exports = counterManager;
+module.exports = dbUtils;
