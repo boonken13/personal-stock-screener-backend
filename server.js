@@ -11,7 +11,7 @@ const profile = require('./controllers/profile');
 const image = require('./controllers/image');
 const auth = require('./controllers/authorization');
 
-const mongoDb = require('./db_modules/dbProperties')
+const mongoDb = require('./db_modules/connection/dbConnections');
 
 
 const app = express();
