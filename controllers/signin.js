@@ -1,13 +1,12 @@
 const mongoDb = require("./../db_modules/dbProperties");
 const jwt = require('jsonwebtoken');
 // Redis Setup
-const redis = require('redis');
-// You will want to update your host to the proper address in production
-const redisClient = redis.createClient(process.env.REDIS_URI);
+const dbRedis = require('./../db_modules/dbRedis');
+const redisClient = dbRedis.getRedisClient();
 
 const signin = {
-  signToken: (username) => {
-    const jwtPayload = { username };
+  signToken: (userId) => {
+    const jwtPayload = { userId };
     return jwt.sign(jwtPayload, 'JWT_SECRET_KEY', { expiresIn: '2 days' });
   },
 
@@ -23,14 +22,14 @@ const signin = {
   },
 
   createSession: (user) => {
-    if (!user || !user.id) {
+    if (!user || !user.userId) {
       return Promise.reject("Incorrect form submission");
     }
-    const token = signin.signToken(user.id);
-    return signin.setToken(token, user.id)
+    const token = signin.signToken(user.userId);
+    return signin.setToken(token, user.userId)
       .then(
         () => {
-          return { success: 'true', userId: token, user: user.id };
+          return { success: 'true', token: token, userId: user.userId };
         },
         err => {
           return Promise.reject(err);
@@ -49,7 +48,7 @@ const signin = {
         if (user) {
           let isValid = bcrypt.compareSync(password, user.password);
           if (isValid) {
-            return { email: user.email , id: user._id.str};
+            return { email: user.email , userId: user.userId};
           }
         } else {
           return Promise.reject("User not found");
@@ -77,7 +76,7 @@ const signin = {
     return authorization ? signin.getAuthTokenId(req, res)
       : signin.handleSignin(bcrypt, req, res)
         .then(data =>
-          data && data.id ? signin.createSession(data) : Promise.reject(data))
+          data && data.userId ? signin.createSession(data) : Promise.reject(data))
         .then(session => res.status(200).json(session))
         .catch(err => res.status(400).json(err));
   }
