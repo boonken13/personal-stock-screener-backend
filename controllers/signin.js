@@ -43,7 +43,7 @@ const signin = {
     if (!email || !password) {
       return Promise.reject('incorrect form submission');
     }
-    return mongoDb.collection_user.findOne({ email: email }).lean().then(
+    return mongoDb.collection_user.findOne({ email: email }, {name: 1, password: 1, email: 1, userId: 1}).lean().then(
       user => {
         if (user) {
           let isValid = bcrypt.compareSync(password, user.password);
