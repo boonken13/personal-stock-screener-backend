@@ -16,9 +16,10 @@ const mongoDb = require('./db_modules/dbProperties');
 
 const app = express();
 
-const whitelist = ['http://localhost:3001']
+const whitelist = ['http://localhost:3001', 'http://localhost:8080'];
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log(origin);
     if (whitelist.indexOf(origin) !== -1 || !origin) {
       callback(null, true)
     } else {
