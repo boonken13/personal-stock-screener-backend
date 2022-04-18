@@ -26,7 +26,7 @@ const corsOptions = {
 }
 
 app.use(morgan('combined'));
-app.use(cors(corsOptions))
+//app.use(cors(corsOptions))
 app.use(express.json()); // latest version of exressJS now comes with Body-Parser!
 
 app.post('/signin', (req, res) => {signin.signinAuthentication(req, res, bcrypt)})

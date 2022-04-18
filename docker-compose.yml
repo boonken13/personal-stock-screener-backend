@@ -8,8 +8,8 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-    volumes:
-      - mongodb_data_container:/data/db
+    # volumes:
+    #   - mongodb_data_container:/data/db
     ports:
       - "27017:27017"
     restart: unless-stopped
@@ -20,8 +20,8 @@ services:
     image: redis
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data_container:/data/
+    # volumes:
+    #   - redis_data_container:/data/
 
   # Backend
   personal-stock-screener:
@@ -29,8 +29,8 @@ services:
     #   - ./.private/api-keys.env "Another way to insert env variables" 
     container_name: backend
     build: ./
-    volumes:
-      - ./:/usr/src/personal-stock-screener
+    # volumes:
+    #   - ./:/usr/src/personal-stock-screener
     command: npm start
     working_dir: /usr/src/personal-stock-screener
     ports:
@@ -43,6 +43,6 @@ services:
     #   - postgres
     #   - redis
 
-volumes:
-  mongodb_data_container:
-  redis_data_container:
+# volumes:
+#   mongodb_data_container:
+#   redis_data_container:
