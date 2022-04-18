@@ -23,11 +23,7 @@ phases:
       - docker/docker compose build
       - echo "Tagging Docker image for Docker Hub"
       - docker images
-      - docker tag src_redis:latest ${DOCKERHUB_USERNAME}/redis:${CODEBUILD_RESOLVED_SOURCE_VERSION}
-      - docker tag src_mongo:latest ${DOCKERHUB_USERNAME}/mongo:${CODEBUILD_RESOLVED_SOURCE_VERSION}
       - docker tag src_backend:latest ${DOCKERHUB_USERNAME}/personal-stock-screener-backend:${CODEBUILD_RESOLVED_SOURCE_VERSION}
-      - docker push ${DOCKERHUB_USERNAME}/redis:${CODEBUILD_RESOLVED_SOURCE_VERSION}
-      - docker push ${DOCKERHUB_USERNAME}/mongo:${CODEBUILD_RESOLVED_SOURCE_VERSION}
       - docker push ${DOCKERHUB_USERNAME}/personal-stock-screener-backend:${CODEBUILD_RESOLVED_SOURCE_VERSION}
   
   post_build:
