@@ -1,0 +1,697 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  CloudMap:
+    Properties:
+      Description: Service Map for Docker Compose project personal-stock-screener-backend
+      Name: personal-stock-screener-backend.local
+      Vpc: vpc-04aa0a6f14470d45c
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+  Cluster:
+    Properties:
+      ClusterName: personal-stock-screener-backend
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+    Type: AWS::ECS::Cluster
+  Default3001Ingress:
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: personal-stock-screener:3001/tcp on default network
+      FromPort: 3001
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: TCP
+      ToPort: 3001
+    Type: AWS::EC2::SecurityGroupIngress
+  Default6379Ingress:
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: redis:6379/tcp on default network
+      FromPort: 6379
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: TCP
+      ToPort: 6379
+    Type: AWS::EC2::SecurityGroupIngress
+  Default27017Ingress:
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: mongodb:27017/tcp on default network
+      FromPort: 27017
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: TCP
+      ToPort: 27017
+    Type: AWS::EC2::SecurityGroupIngress
+  DefaultNetwork:
+    Properties:
+      GroupDescription: personal-stock-screener-backend Security Group for default
+        network
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.network
+        Value: personal-stock-screener-backend_default
+      VpcId: vpc-04aa0a6f14470d45c
+    Type: AWS::EC2::SecurityGroup
+  DefaultNetworkIngress:
+    Properties:
+      Description: Allow communication within network default
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: "-1"
+      SourceSecurityGroupId:
+        Ref: DefaultNetwork
+    Type: AWS::EC2::SecurityGroupIngress
+  LoadBalancer:
+    Properties:
+      LoadBalancerAttributes:
+      - Key: load_balancing.cross_zone.enabled
+        Value: "true"
+      Scheme: internet-facing
+      Subnets:
+      - subnet-053c2cf038f553036
+      - subnet-06239a82c1c82ea9d
+      - subnet-0dd8e29e30965c18e
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      Type: network
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  LogGroup:
+    Properties:
+      LogGroupName: /docker-compose/personal-stock-screener-backend
+    Type: AWS::Logs::LogGroup
+  MongoService:
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+        - Cluster
+        - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+          - Ref: DefaultNetwork
+          Subnets:
+          - subnet-053c2cf038f553036
+          - subnet-06239a82c1c82ea9d
+          - subnet-0dd8e29e30965c18e
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+      - RegistryArn:
+          Fn::GetAtt:
+          - MongoServiceDiscoveryEntry
+          - Arn
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: mongo
+      TaskDefinition:
+        Ref: MongoTaskDefinition
+    Type: AWS::ECS::Service
+  MongoServiceDiscoveryEntry:
+    Properties:
+      Description: '"mongo" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+        - TTL: 60
+          Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: mongo
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  MongoTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+      - Command:
+        - ap-southeast-1.compute.internal
+        - personal-stock-screener-backend.local
+        Essential: false
+        Image: docker/ecs-searchdomain-sidecar:1.0
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: Mongo_ResolvConf_InitContainer
+      - DependsOn:
+        - Condition: SUCCESS
+          ContainerName: Mongo_ResolvConf_InitContainer
+        Essential: true
+        Image: docker.io/asky91831/mongo:latest@sha256:fbf49dc17d6c75efbe0fce975ff783291e715fefd7a07490f1ec58630cc3db2a
+        LinuxParameters: {}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: mongo
+        RepositoryCredentials:
+          CredentialsParameter: arn:aws:secretsmanager:ap-southeast-1:685451000807:secret:pullcredential-q5ByIF
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: MongoTaskExecutionRole
+      Family: personal-stock-screener-backend-mongo
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+      - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  MongoTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Condition: {}
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - secretsmanager:GetSecretValue
+            - ssm:GetParameters
+            - kms:Decrypt
+            Condition: {}
+            Effect: Allow
+            Principal: {}
+            Resource:
+            - arn:aws:secretsmanager:ap-southeast-1:685451000807:secret:pullcredential-q5ByIF
+        PolicyName: mongoGrantAccessToSecrets
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: mongo
+    Type: AWS::IAM::Role
+  MongodbService:
+    DependsOn:
+    - MongodbTCP27017Listener
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+        - Cluster
+        - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+      - ContainerName: mongodb
+        ContainerPort: 27017
+        TargetGroupArn:
+          Ref: MongodbTCP27017TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+          - Ref: DefaultNetwork
+          Subnets:
+          - subnet-053c2cf038f553036
+          - subnet-06239a82c1c82ea9d
+          - subnet-0dd8e29e30965c18e
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+      - RegistryArn:
+          Fn::GetAtt:
+          - MongodbServiceDiscoveryEntry
+          - Arn
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: mongodb
+      TaskDefinition:
+        Ref: MongodbTaskDefinition
+    Type: AWS::ECS::Service
+  MongodbServiceDiscoveryEntry:
+    Properties:
+      Description: '"mongodb" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+        - TTL: 60
+          Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: mongodb
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  MongodbTCP27017Listener:
+    Properties:
+      DefaultActions:
+      - ForwardConfig:
+          TargetGroups:
+          - TargetGroupArn:
+              Ref: MongodbTCP27017TargetGroup
+        Type: forward
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 27017
+      Protocol: TCP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  MongodbTCP27017TargetGroup:
+    Properties:
+      Port: 27017
+      Protocol: TCP
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      TargetType: ip
+      VpcId: vpc-04aa0a6f14470d45c
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  MongodbTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+      - Command:
+        - ap-southeast-1.compute.internal
+        - personal-stock-screener-backend.local
+        Essential: false
+        Image: docker/ecs-searchdomain-sidecar:1.0
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: Mongodb_ResolvConf_InitContainer
+      - DependsOn:
+        - Condition: SUCCESS
+          ContainerName: Mongodb_ResolvConf_InitContainer
+        Environment:
+        - Name: PGID
+          Value: "1000"
+        - Name: PUID
+          Value: "1000"
+        Essential: true
+        Image: docker.io/library/mongo:latest@sha256:1e72fdd16fc769e5200dad77eff5b2316730d42473c281d8192872698e1f8689
+        LinuxParameters: {}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: mongodb
+        PortMappings:
+        - ContainerPort: 27017
+          HostPort: 27017
+          Protocol: tcp
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: MongodbTaskExecutionRole
+      Family: personal-stock-screener-backend-mongodb
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+      - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  MongodbTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Condition: {}
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: mongodb
+    Type: AWS::IAM::Role
+  PersonalstockscreenerService:
+    DependsOn:
+    - PersonalstockscreenerTCP3001Listener
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+        - Cluster
+        - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+      - ContainerName: personal-stock-screener
+        ContainerPort: 3001
+        TargetGroupArn:
+          Ref: PersonalstockscreenerTCP3001TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+          - Ref: DefaultNetwork
+          Subnets:
+          - subnet-053c2cf038f553036
+          - subnet-06239a82c1c82ea9d
+          - subnet-0dd8e29e30965c18e
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+      - RegistryArn:
+          Fn::GetAtt:
+          - PersonalstockscreenerServiceDiscoveryEntry
+          - Arn
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: personal-stock-screener
+      TaskDefinition:
+        Ref: PersonalstockscreenerTaskDefinition
+    Type: AWS::ECS::Service
+  PersonalstockscreenerServiceDiscoveryEntry:
+    Properties:
+      Description: '"personal-stock-screener" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+        - TTL: 60
+          Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: personal-stock-screener
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  PersonalstockscreenerTCP3001Listener:
+    Properties:
+      DefaultActions:
+      - ForwardConfig:
+          TargetGroups:
+          - TargetGroupArn:
+              Ref: PersonalstockscreenerTCP3001TargetGroup
+        Type: forward
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 3001
+      Protocol: TCP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  PersonalstockscreenerTCP3001TargetGroup:
+    Properties:
+      Port: 3001
+      Protocol: TCP
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      TargetType: ip
+      VpcId: vpc-04aa0a6f14470d45c
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  PersonalstockscreenerTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+      - Command:
+        - ap-southeast-1.compute.internal
+        - personal-stock-screener-backend.local
+        Essential: false
+        Image: docker/ecs-searchdomain-sidecar:1.0
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: Personalstockscreener_ResolvConf_InitContainer
+      - Command:
+        - npm
+        - start
+        DependsOn:
+        - Condition: SUCCESS
+          ContainerName: Personalstockscreener_ResolvConf_InitContainer
+        Environment:
+        - Name: MONGO_URI
+          Value: mongodb://mongodb:27017
+        - Name: REDIS_URI
+          Value: redis://redis:6379
+        Essential: true
+        Image: docker.io/asky91831/personal-stock-screener-backend_personal-stock-screener:latest@sha256:7ce520aa45b965c5ece335e9c8a358e0265adf4beb2af95a45d76fd77ceb5ea5
+        LinuxParameters: {}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: personal-stock-screener
+        PortMappings:
+        - ContainerPort: 3001
+          HostPort: 3001
+          Protocol: tcp
+        RepositoryCredentials:
+          CredentialsParameter: arn:aws:secretsmanager:ap-southeast-1:685451000807:secret:pullcredential-q5ByIF
+        WorkingDirectory: /usr/src/personal-stock-screener
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: PersonalstockscreenerTaskExecutionRole
+      Family: personal-stock-screener-backend-personal-stock-screener
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+      - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  PersonalstockscreenerTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Condition: {}
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - secretsmanager:GetSecretValue
+            - ssm:GetParameters
+            - kms:Decrypt
+            Condition: {}
+            Effect: Allow
+            Principal: {}
+            Resource:
+            - arn:aws:secretsmanager:ap-southeast-1:685451000807:secret:pullcredential-q5ByIF
+        PolicyName: personal-stock-screenerGrantAccessToSecrets
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: personal-stock-screener
+    Type: AWS::IAM::Role
+  RedisService:
+    DependsOn:
+    - RedisTCP6379Listener
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+        - Cluster
+        - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+      - ContainerName: redis
+        ContainerPort: 6379
+        TargetGroupArn:
+          Ref: RedisTCP6379TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+          - Ref: DefaultNetwork
+          Subnets:
+          - subnet-053c2cf038f553036
+          - subnet-06239a82c1c82ea9d
+          - subnet-0dd8e29e30965c18e
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+      - RegistryArn:
+          Fn::GetAtt:
+          - RedisServiceDiscoveryEntry
+          - Arn
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: redis
+      TaskDefinition:
+        Ref: RedisTaskDefinition
+    Type: AWS::ECS::Service
+  RedisServiceDiscoveryEntry:
+    Properties:
+      Description: '"redis" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+        - TTL: 60
+          Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: redis
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  RedisTCP6379Listener:
+    Properties:
+      DefaultActions:
+      - ForwardConfig:
+          TargetGroups:
+          - TargetGroupArn:
+              Ref: RedisTCP6379TargetGroup
+        Type: forward
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 6379
+      Protocol: TCP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  RedisTCP6379TargetGroup:
+    Properties:
+      Port: 6379
+      Protocol: TCP
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      TargetType: ip
+      VpcId: vpc-04aa0a6f14470d45c
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  RedisTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+      - Command:
+        - ap-southeast-1.compute.internal
+        - personal-stock-screener-backend.local
+        Essential: false
+        Image: docker/ecs-searchdomain-sidecar:1.0
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: Redis_ResolvConf_InitContainer
+      - DependsOn:
+        - Condition: SUCCESS
+          ContainerName: Redis_ResolvConf_InitContainer
+        Essential: true
+        Image: docker.io/asky91831/redis:latest@sha256:d09307b2a52134eb2f7d5dfa4228bdbed7cc01fbffc6d8d92c9d67d621e32439
+        LinuxParameters: {}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: personal-stock-screener-backend
+        Name: redis
+        PortMappings:
+        - ContainerPort: 6379
+          HostPort: 6379
+          Protocol: tcp
+        RepositoryCredentials:
+          CredentialsParameter: arn:aws:secretsmanager:ap-southeast-1:685451000807:secret:pullcredential-q5ByIF
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: RedisTaskExecutionRole
+      Family: personal-stock-screener-backend-redis
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+      - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  RedisTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Condition: {}
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - secretsmanager:GetSecretValue
+            - ssm:GetParameters
+            - kms:Decrypt
+            Condition: {}
+            Effect: Allow
+            Principal: {}
+            Resource:
+            - arn:aws:secretsmanager:ap-southeast-1:685451000807:secret:pullcredential-q5ByIF
+        PolicyName: redisGrantAccessToSecrets
+      Tags:
+      - Key: com.docker.compose.project
+        Value: personal-stock-screener-backend
+      - Key: com.docker.compose.service
+        Value: redis
+    Type: AWS::IAM::Role
