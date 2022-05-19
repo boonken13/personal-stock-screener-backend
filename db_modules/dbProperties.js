@@ -41,7 +41,11 @@ let counterModel = db_screenerdb.model('counter', counterSchema, 'counter');
 
 let dbProperties = {
     collection_user: userModel,
-    collection_counter: counterModel
+    collection_counter: counterModel,
+    disconnect: () => {
+      mongoose.disconnect();
+      mongoose.connection.close();
+    }
 }
 
 module.exports = dbProperties;

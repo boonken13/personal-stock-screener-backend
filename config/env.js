@@ -1,7 +1,7 @@
 const localConfig = {
     mode: "local",
     db: {
-        screenerDBUrl: process.env.MONGO_URI || "localhost:27017/screenerdb"
+        screenerDBUrl: process.env.MONGO_URI || "mongodb://localhost:27017"
     }
 }
 
