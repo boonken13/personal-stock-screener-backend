@@ -6,6 +6,9 @@ const dbRedis = {
   getRedisClient: () => {
     return redisClient ? redisClient : undefined;
   },
+  disconnect: () => {
+    redisClient.quit();
+  }
 };
 
 module.exports = dbRedis;

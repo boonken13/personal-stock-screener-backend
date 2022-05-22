@@ -22,7 +22,7 @@ createConnection = (dbURL, callback) => {
 
     db.once("open", function () {
       // DO NOT REMOVE - To ensure DB connection
-      console.log("Mongoose connected to " + dbURL);
+      // console.log("Mongoose connected to " + dbURL);
 
       if (callback) {
         callback();
