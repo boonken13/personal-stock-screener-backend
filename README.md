@@ -15,3 +15,4 @@ Run `docker-compose exec redis redis-cli`
 
 
 
+aws cloudformation create-stack --stack-name docker-compose-code-pipeline --template-body file://operations/code-pipeline-cloudformation.yaml --capabilities CAPABILITY_NAMED_IAM --enable-termination-protection --region ap-southeast-1 --parameters ParameterKey=DockerPullSecretsManagerArn,ParameterValue=%DOCKER_PULL_SECRETS_MANAGER% ParameterKey=GitHubOwner,ParameterValue='boonken13'
