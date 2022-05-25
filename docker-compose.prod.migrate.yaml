@@ -27,7 +27,7 @@ services:
     image: ${DOCKER_HUB_ID}/redis:latest
     x-aws-pull_credentials: ${DOCKER_PULL_SECRETS_MANAGER}
   personal-stock-screener:
-    image: ${DOCKER_HUB_ID}/personal-stock-screener-backend_personal-stock-screener:latest
+    image: ${DOCKER_HUB_ID}/personal-stock-screener-backend:latest
     x-aws-pull_credentials: ${DOCKER_PULL_SECRETS_MANAGER}
     logging:
       options:
