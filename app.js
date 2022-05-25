@@ -33,7 +33,7 @@ app.post('/register', (req, res) => { register.handleRegister(req, res, bcrypt) 
 app.get('/profile/:id', auth.requireAuth, (req, res) => { profile.handleProfileGet(req, res)})
 app.post('/profile/:id', auth.requireAuth, (req, res) => { profile.handleProfileUpdate(req, res)})
 app.get("/test", (req, res) => {
-  res.status(200).send("Hello World!");
+  return res.status(200).json("Hello World!");
 });
 
 // app.listen(3001, ()=> {
