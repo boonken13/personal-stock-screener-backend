@@ -32,9 +32,9 @@ app.post('/signin', (req, res) => {signin.signinAuthentication(req, res, bcrypt)
 app.post('/register', (req, res) => { register.handleRegister(req, res, bcrypt) })
 app.get('/profile/:id', auth.requireAuth, (req, res) => { profile.handleProfileGet(req, res)})
 app.post('/profile/:id', auth.requireAuth, (req, res) => { profile.handleProfileUpdate(req, res)})
-// app.get("/test", (req, res) => {
-//   res.status(200).send("Hello World!");
-// });
+app.get("/test", (req, res) => {
+  res.status(200).send("Hello World!");
+});
 
 // app.listen(3001, ()=> {
 //   console.log('app is running on port 3001');
