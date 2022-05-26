@@ -19,7 +19,7 @@ const profile = {
   },
   handleProfileUpdate: (req, res) => {
     const { id } = req.params;
-    const { firstName, lastName, address, city, country, postalCode, aboutMe } =
+    const { firstName, lastName, address, city, country, postal, aboutMe } =
       req.body;
     if (!id) {
       return res.status(400).json("id not found");
@@ -30,7 +30,7 @@ const profile = {
       address: address || "",
       city: city || "",
       country: country || "",
-      postalCode: postalCode || "",
+      postal: postal || "",
       aboutMe: aboutMe || "",
     };
 

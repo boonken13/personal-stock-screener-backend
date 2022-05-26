@@ -6,7 +6,7 @@ const redisClient = require('../db_modules/dbRedis');
 describe("Test the rest api without token", () => {
   test("It should response the GET method", () => {
     return request(app)
-      .get("/")
+      .get("/test")
       .then((response) => {
         expect(response.statusCode).toBe(200);
       });
