@@ -9,17 +9,29 @@ describe("Test the rest api with token", () => {
   
   
     beforeAll(() => {
+      let registerBody = {
+        email: "sss",
+        password: "sss",
+        firstName: "sss",
+        lastName: "sss"
+      };
       let body = {
         email: "sss",
         password: "sss"
       };
       return request(app)
-        .post("/signin")
+        .post("/register")
         .set('Accept', 'application/json')
-        .send(body)
-        .then((response) => {
-          token = response._body.token;
-          userId = response._body.userId;
+        .send(registerBody)
+        .then(() => {
+          return request(app)
+            .post("/signin")
+            .set('Accept', 'application/json')
+            .send(body)
+            .then((response) => {
+              token = response._body.token;
+              userId = response._body.userId;
+            });
         });
     });
   

@@ -13,7 +13,7 @@ const profile = {
             : res.status(400).json("user not found");
         },
         (err) => {
-          return res.status(400).json("error getting user");
+          return res.status(400).json("error getting user" + err);
         }
       );
   },
@@ -39,7 +39,7 @@ const profile = {
         res.status(200).json("successfully updated user");
       },
       (err) => {
-        return res.status(400).json("error updating user");
+        return res.status(400).json("error updating user" + err);
       }
     );
   },
